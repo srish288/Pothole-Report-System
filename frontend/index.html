@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pothole Reporter</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .form-container {
+      background: white;
+      padding: 20px;
+      margin: auto;
+      width: 90%;
+      max-width: 450px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid #aaa;
+      font-size: 16px;
+    }
+
+    button {
+      background: black;
+      color: white;
+      cursor: pointer;
+      font-size: 18px;
+      margin-top: 15px;
+    }
+
+    #message {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🕳️ Pothole Reporting System</h1>
+  <p id="status">Checking backend...</p>
+
+  <div class="form-container">
+    <h2>Report a Pothole</h2>
+
+    <form id="reportForm" enctype="multipart/form-data">
+      <label>📍 Location</label>
+      <input type="text" id="location" name="location" placeholder="Enter location..." required>
+
+      <label>📝 Description</label>
+      <textarea id="description" name="description" placeholder="Enter details..." required></textarea>
+
+      <label>📷 Photo</label>
+      <input type="file" id="photo" name="photo" accept="image/*" capture="environment">
+
+      <!-- hidden gps fields -->
+      <input type="hidden" id="latitude" name="latitude">
+      <input type="hidden" id="longitude" name="longitude">
+
+      <button type="submit">Submit Report</button>
+    </form>
+
+    <p id="message"></p>
+  </div>
+
+  <script>
+    const backendURL = "http://localhost:3100";
+
+    // Check if backend is running
+    async function checkBackend() {
+      try {
+        const res = await fetch(backendURL);
+        document.getElementById("status").innerText = "✅ Backend connected!";
+      } catch (err) {
+        document.getElementById("status").innerText = "❌ Backend not reachable!";
+      }
+    }
+    checkBackend();
+
+    // Auto-fill GPS coordinates
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          document.getElementById("latitude").value = position.coords.latitude;
+          document.getElementById("longitude").value = position.coords.longitude;
+        },
+        err => {
+          console.warn("GPS access denied.");
+        }
+      );
+    }
+
+    // Handle form submit
+    document.getElementById("reportForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const message = document.getElementById("message");
+      message.innerText = "Submitting report...";
+
+      const formData = new FormData();
+      formData.append("location", document.getElementById("location").value);
+      formData.append("description", document.getElementById("description").value);
+      formData.append("latitude", document.getElementById("latitude").value);
+      formData.append("longitude", document.getElementById("longitude").value);
+
+      const photo = document.getElementById("photo").files[0];
+      if (photo) {
+        formData.append("photo", photo);
+      }
+
+      try {
+        const response = await fetch(`${backendURL}/report`, {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          message.style.color = "green";
+          message.innerText = "✔ Report submitted successfully!";
+          document.getElementById("reportForm").reset();
+        } else {
+          message.style.color = "red";
+          message.innerText = "❌ " + data.message;
+        }
+      } catch (error) {
+        message.style.color = "red";
+        message.innerText = "❌ Failed to connect to backend!";
+      }
+    });
+  </script>
+</body>
+</html>

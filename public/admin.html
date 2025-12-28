@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pothole Admin Dashboard</title>
+<style>
+  body { font-family: Arial; padding: 20px; background:#f4f4f4;}
+  h1 { text-align: center; }
+  .report-card { background:white; padding:15px; margin-bottom:15px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+  img { max-width:200px; margin-top:10px; border-radius:6px;}
+  hr { margin:10px 0; }
+</style>
+</head>
+<body>
+
+<h1>🕳️ Pothole Reports Dashboard</h1>
+<div id="reports">Loading reports...</div>
+
+
+  <script>
+    async function loadReports() {
+      const container = document.getElementById("reports");
+      try {
+        const res = await fetch("/reports");
+        const data = await res.json();
+
+        if (!data.length) {
+          container.innerHTML = "<h3>No reports found.</h3>";
+          return;
+        }
+
+        container.innerHTML = "";
+
+        data.forEach((report, index) => {
+          const card = document.createElement("div");
+          card.className = "report-card";
+
+          card.innerHTML = `
+            <p><strong>📍 Location:</strong> ${report.location}</p>
+            <p><strong>📝 Description:</strong> ${report.description}</p>
+            <p><strong>🌍 Latitude:</strong> ${report.latitude}</p>
+            <p><strong>🌍 Longitude:</strong> ${report.longitude}</p>
+            <p><strong>⏰ Time:</strong> ${new Date(report.timestamp).toLocaleString()}</p>
+            ${report.image ? `<img src="${report.image}" alt="Pothole Image">` : ""}
+            <button onclick="deleteReport(${index})" style="background:red;color:white;border:none;padding:5px 10px;margin-top:5px;cursor:pointer;">Delete</button>
+            <button onclick="forwardReport(${index})" style="background:green;color:white;border:none;padding:5px 10px;margin-top:5px;cursor:pointer;">Forward</button>
+            <hr>
+          `;
+
+          container.appendChild(card);
+        });
+
+      } catch(err) {
+        console.error(err);
+        container.innerHTML = "<h3>Error loading reports.</h3>";
+      }
+    }
+
+    async function deleteReport(index) {
+      if (!confirm("Are you sure you want to delete this report?")) return;
+      try {
+        await fetch(`/reports/${index}`, { method: "DELETE" });
+        loadReports();
+      } catch(err) { console.error(err); alert("Failed to delete report"); }
+    }
+
+    async function forwardReport(index) {
+      try {
+        const res = await fetch(`/forward/${index}`, { method: "POST" });
+        const data = await res.json();
+        alert(data.message);
+      } catch(err) { console.error(err); alert("Failed to forward report"); }
+    }
+
+    loadReports();
+
+
+
+</script>
+
+</body>
+</html>
